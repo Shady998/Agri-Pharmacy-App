@@ -6,6 +6,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
 import { UserRole, StockMovementType } from '@prisma/client';
 
 @ApiTags('inventory')
@@ -18,16 +19,14 @@ export class InventoryController {
   @Get('summary')
   @Roles(UserRole.TENANT_ADMIN, UserRole.MANAGER, UserRole.SALESPERSON, UserRole.VIEWER)
   @ApiOperation({ summary: 'Get inventory summary dashboard' })
-  async getSummary() {
-    const tenantId = (global as any).currentTenantId;
+  async getSummary(@CurrentTenant('id') tenantId: string) {
     return this.inventoryService.getStockSummary(tenantId);
   }
 
   @Post('batches')
   @Roles(UserRole.TENANT_ADMIN, UserRole.MANAGER)
   @ApiOperation({ summary: 'Receive new inventory batch' })
-  async createBatch(@Body() data: any) {
-    const tenantId = (global as any).currentTenantId;
+  async createBatch(@CurrentTenant('id') tenantId: string, @Body() data: any) {
     return this.inventoryService.createBatch(tenantId, data);
   }
 
@@ -39,12 +38,12 @@ export class InventoryController {
   @ApiQuery({ name: 'take', required: false, type: Number })
   @ApiQuery({ name: 'expiringSoon', required: false, type: Boolean })
   async getBatches(
+    @CurrentTenant('id') tenantId: string,
     @Query('productId') productId?: string,
     @Query('skip') skip?: number,
     @Query('take') take?: number,
     @Query('expiringSoon') expiringSoon?: boolean,
   ) {
-    const tenantId = (global as any).currentTenantId;
     return this.inventoryService.getBatches(tenantId, { productId, skip, take, expiringSoon });
   }
 
@@ -52,10 +51,10 @@ export class InventoryController {
   @Roles(UserRole.TENANT_ADMIN, UserRole.MANAGER)
   @ApiOperation({ summary: 'Adjust stock (IN/OUT/ADJUSTMENT/RETURN/EXPIRED/DAMAGED)' })
   async adjustStock(
+    @CurrentTenant('id') tenantId: string,
     @Body() data: any,
     @CurrentUser('id') userId: string,
   ) {
-    const tenantId = (global as any).currentTenantId;
     return this.inventoryService.adjustStock(tenantId, userId, data);
   }
 
@@ -68,13 +67,13 @@ export class InventoryController {
   @ApiQuery({ name: 'skip', required: false, type: Number })
   @ApiQuery({ name: 'take', required: false, type: Number })
   async getMovements(
+    @CurrentTenant('id') tenantId: string,
     @Query('productId') productId?: string,
     @Query('batchId') batchId?: string,
     @Query('type') type?: StockMovementType,
     @Query('skip') skip?: number,
     @Query('take') take?: number,
   ) {
-    const tenantId = (global as any).currentTenantId;
     return this.inventoryService.getMovements(tenantId, { productId, batchId, type, skip, take });
   }
 }

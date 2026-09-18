@@ -1,13 +1,14 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../prisma/prisma.service';
-import { CurrentUser } from '../decorators/current-user.decorator';
+import { TenantContextService } from '../tenant-context/tenant-context.service';
 
 @Injectable()
 export class TenantGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     private prisma: PrismaService,
+    private tenantContext: TenantContextService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -26,7 +27,7 @@ export class TenantGuard implements CanActivate {
     // Dev mode: bypass DB lookup for dev tenants
     if (tenantId.startsWith('dev-')) {
       const mockTenant = { id: tenantId, status: 'ACTIVE' };
-      (global as any).currentTenantId = tenantId;
+      this.tenantContext.run(tenantId, () => {});
       request.tenant = mockTenant;
       request.tenantId = tenantId;
       return true;
@@ -45,7 +46,7 @@ export class TenantGuard implements CanActivate {
       throw new ForbiddenException('اشتراك المستأجر غير نشط');
     }
 
-    (global as any).currentTenantId = tenantId;
+    this.tenantContext.run(tenantId, () => {});
     request.tenant = tenant;
     request.tenantId = tenantId;
 

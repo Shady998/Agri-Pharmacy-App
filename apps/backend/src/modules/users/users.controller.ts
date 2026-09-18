@@ -6,6 +6,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
 import { UserRole } from '@prisma/client';
 
 @ApiTags('users')
@@ -23,20 +24,19 @@ export class UsersController {
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiQuery({ name: 'role', required: false, enum: UserRole })
   async findAll(
+    @CurrentTenant('id') tenantId: string,
     @Query('skip') skip?: number,
     @Query('take') take?: number,
     @Query('search') search?: string,
     @Query('role') role?: UserRole,
   ) {
-    const tenantId = (global as any).currentTenantId;
     return this.usersService.findAll(tenantId, { skip, take, search, role });
   }
 
   @Get(':id')
   @Roles(UserRole.TENANT_ADMIN, UserRole.MANAGER)
   @ApiOperation({ summary: 'Get user details' })
-  async findOne(@Param('id') id: string) {
-    const tenantId = (global as any).currentTenantId;
+  async findOne(@CurrentTenant('id') tenantId: string, @Param('id') id: string) {
     return this.usersService.findOne(tenantId, id);
   }
 
@@ -44,10 +44,10 @@ export class UsersController {
   @Roles(UserRole.TENANT_ADMIN)
   @ApiOperation({ summary: 'Invite new user to tenant' })
   async inviteUser(
+    @CurrentTenant('id') tenantId: string,
     @Body() data: { email: string; name: string; role: UserRole },
     @CurrentUser('id') inviterId: string,
   ) {
-    const tenantId = (global as any).currentTenantId;
     return this.usersService.inviteUser(tenantId, data, inviterId);
   }
 
@@ -55,27 +55,25 @@ export class UsersController {
   @Roles(UserRole.TENANT_ADMIN)
   @ApiOperation({ summary: 'Update user role' })
   async updateRole(
+    @CurrentTenant('id') tenantId: string,
     @Param('id') id: string,
     @Body('role') role: UserRole,
     @CurrentUser('role') requesterRole: UserRole,
   ) {
-    const tenantId = (global as any).currentTenantId;
     return this.usersService.updateRole(tenantId, id, role, requesterRole);
   }
 
   @Patch(':id/deactivate')
   @Roles(UserRole.TENANT_ADMIN)
   @ApiOperation({ summary: 'Deactivate user' })
-  async deactivateUser(@Param('id') id: string, @CurrentUser('id') requesterId: string) {
-    const tenantId = (global as any).currentTenantId;
+  async deactivateUser(@CurrentTenant('id') tenantId: string, @Param('id') id: string, @CurrentUser('id') requesterId: string) {
     return this.usersService.deactivateUser(tenantId, id, requesterId);
   }
 
   @Patch(':id/activate')
   @Roles(UserRole.TENANT_ADMIN)
   @ApiOperation({ summary: 'Activate user' })
-  async activateUser(@Param('id') id: string) {
-    const tenantId = (global as any).currentTenantId;
+  async activateUser(@CurrentTenant('id') tenantId: string, @Param('id') id: string) {
     return this.usersService.activateUser(tenantId, id);
   }
 }

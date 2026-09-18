@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
 import { UserRole, PesticideType } from '@prisma/client';
 
 @ApiTags('products')
@@ -17,8 +18,7 @@ export class ProductsController {
   @Post()
   @Roles(UserRole.TENANT_ADMIN, UserRole.MANAGER)
   @ApiOperation({ summary: 'Create new product' })
-  async create(@Body() data: any) {
-    const tenantId = (global as any).currentTenantId;
+  async create(@CurrentTenant('id') tenantId: string, @Body() data: any) {
     return this.productsService.create(tenantId, data);
   }
 
@@ -32,6 +32,7 @@ export class ProductsController {
   @ApiQuery({ name: 'isActive', required: false, type: Boolean })
   @ApiQuery({ name: 'lowStock', required: false, type: Boolean })
   async findAll(
+    @CurrentTenant('id') tenantId: string,
     @Query('skip') skip?: number,
     @Query('take') take?: number,
     @Query('search') search?: string,
@@ -39,7 +40,6 @@ export class ProductsController {
     @Query('isActive') isActive?: boolean,
     @Query('lowStock') lowStock?: boolean,
   ) {
-    const tenantId = (global as any).currentTenantId;
     return this.productsService.findAll(tenantId, {
       skip,
       take,
@@ -51,40 +51,35 @@ export class ProductsController {
   @Roles(UserRole.TENANT_ADMIN, UserRole.MANAGER, UserRole.SALESPERSON, UserRole.VIEWER)
   @ApiOperation({ summary: 'Search products by name or ingredient' })
   @ApiQuery({ name: 'q', required: true, type: String })
-  async search(@Query('q') query: string) {
-    const tenantId = (global as any).currentTenantId;
+  async search(@CurrentTenant('id') tenantId: string, @Query('q') query: string) {
     return this.productsService.search(tenantId, query);
   }
 
   @Get('low-stock')
   @Roles(UserRole.TENANT_ADMIN, UserRole.MANAGER)
   @ApiOperation({ summary: 'Get products with low stock' })
-  async getLowStock() {
-    const tenantId = (global as any).currentTenantId;
+  async getLowStock(@CurrentTenant('id') tenantId: string) {
     return this.productsService.getLowStock(tenantId);
   }
 
   @Get(':id')
   @Roles(UserRole.TENANT_ADMIN, UserRole.MANAGER, UserRole.SALESPERSON, UserRole.VIEWER)
   @ApiOperation({ summary: 'Get product details' })
-  async findOne(@Param('id') id: string) {
-    const tenantId = (global as any).currentTenantId;
+  async findOne(@CurrentTenant('id') tenantId: string, @Param('id') id: string) {
     return this.productsService.findOne(tenantId, id);
   }
 
   @Patch(':id')
   @Roles(UserRole.TENANT_ADMIN, UserRole.MANAGER)
   @ApiOperation({ summary: 'Update product' })
-  async update(@Param('id') id: string, @Body() data: any) {
-    const tenantId = (global as any).currentTenantId;
+  async update(@CurrentTenant('id') tenantId: string, @Param('id') id: string, @Body() data: any) {
     return this.productsService.update(tenantId, id, data);
   }
 
   @Delete(':id')
   @Roles(UserRole.TENANT_ADMIN)
   @ApiOperation({ summary: 'Delete or deactivate product' })
-  async delete(@Param('id') id: string) {
-    const tenantId = (global as any).currentTenantId;
+  async delete(@CurrentTenant('id') tenantId: string, @Param('id') id: string) {
     return this.productsService.delete(tenantId, id);
   }
 }

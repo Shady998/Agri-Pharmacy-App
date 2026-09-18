@@ -1,8 +1,15 @@
 import { PrismaClient, Prisma } from '@prisma/client';
+import { TenantContextService } from '../tenant-context/tenant-context.service';
+
+let tenantContext: TenantContextService;
+
+export const setTenantContext = (context: TenantContextService) => {
+  tenantContext = context;
+};
 
 export const tenantMiddleware = (prisma: PrismaClient) => {
   prisma.$use(async (params, next) => {
-    const tenantId = (global as any).currentTenantId;
+    const tenantId = tenantContext?.getTenantId();
 
     if (tenantId && params.model) {
       const modelsWithTenant = [
